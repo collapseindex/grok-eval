@@ -24,6 +24,7 @@
 - [Security](#security)
 - [Agents](#agents)
 - [Results](#results-grok-420-full-gauntlet----march-6-2026)
+- [Related work](#related-work)
 - [Changelog](#changelog)
 - [License](#license)
 
@@ -453,6 +454,9 @@ These results are specific to `grok-4.20-experimental-beta-0304` under Umbra run
 with 30 rounds per run. Higher round counts and isolation testing (without Umbra) are natural
 next steps. The tooling supports both -- `--rounds 100` and direct xAI API calls are already
 built in.
+
+## Related work
+[CI-1T on GPU fleets](https://github.com/collapseindex/ci1t-colossus)
 
 ## Changelog
 
