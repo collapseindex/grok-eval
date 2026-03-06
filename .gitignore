@@ -9,5 +9,4 @@ build/
 
 # Data outputs (regenerated per run)
 data/runs/
-data/plots/
 data/reports/
