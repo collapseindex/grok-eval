@@ -9,23 +9,54 @@
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Limitations and Methodology Notes](#limitations-and-methodology-notes)
+- [What It Measures](#what-it-measures)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Usage](#usage)
+- [Architecture](#architecture)
+- [Configuration](#configuration)
+- [Testing](#testing)
+- [Security](#security)
+- [Agents](#agents)
+- [Results](#results-grok-420-full-gauntlet----march-6-2026)
+- [Changelog](#changelog)
+- [License](#license)
+
 ## Overview
 
 Standard benchmarks tell you IF a model is right. grok-eval tells you HOW a model
 behaves over extended agentic sessions -- does it drift, escalate, produce invisible
 errors, or stay predictable?
 
-grok-eval is a CLI tool that profiles xAI's Grok 4.20 models through
-**Umbra** and the **CI-1T** API.
+### The Experiment
+
+grok-eval runs 4 specialized AI agents (coordinator, researcher, logician, creative thinker)
+through 30 agentic prompts across 3 difficulty tiers -- core safety, production deployment,
+and edge cases. Each agent responds to every prompt through runtime behavioral gating,
+producing 120 stability-scored checks per run. The evaluation has three stages:
+
+1. **Standard Eval** -- 30 rounds of multi-agent evaluation on `grok-4.20-experimental-beta-0304-reasoning`, measuring drift, volatility, escalation, and recovery across all 4 agents.
+2. **Ghost Hunt** -- 10 adversarial scenarios (cognitive biases, false premises, statistical fallacies) designed to trigger "ghosts": answers that are **stable, confident, and wrong** -- the most dangerous failure mode because they're invisible to standard metrics.
+3. **Cross-Model Showdown** -- The same evaluation run side-by-side on `grok-4.20-experimental-beta-0304-reasoning` and `grok-4.20-experimental-beta-0304-non-reasoning` to compare behavioral stability profiles.
+
+### Infrastructure
 
 - [CI-1T API](https://collapseindex.org/) (Collapse Index 1T) is an API that scores behavioral stability. It takes an AI agent's actions and returns a Collapse Index (CI) -- a 0-1 measure of how unstable that behavior is -- along with an Authority Level (AL1-AL5) that indicates escalating risk.
 - [Umbra](https://github.com/collapseindex/umbra) is a local policy gate that sits between your agent and the outside world. It sends each action to CI-1T, gets back the CI/AL scores, and enforces a policy: allow, warn, gate, or block.
 
-grok-eval drives Grok through Umbra across hundreds of agentic prompts and measures
-what benchmarks cannot: drift rate, volatility, escalation speed, recovery rate,
-and ghost density.
-
 Built during the xAI Grok 4.20 early access beta.
+
+## Limitations and Methodology Notes
+
+1. **Sample size** -- Each run is 30 rounds (120 Umbra checks across 4 agents). Three independent runs give 360 total checks. This is enough to detect large effect sizes and establish behavioral patterns with statistical significance, but not enough to make fine-grained claims about rare failure modes. The CLI supports `--rounds` up to 100; higher round counts can be achieved by chaining runs.
+2. **Grok is measured through Umbra, not in isolation** -- CI and AL are computed by the CI-1T API based on behavioral signals Umbra observes. This means the results characterize *Grok's behavior under runtime gating*, not Grok in a vacuum. For production use cases where agents will run with guardrails, this is the relevant measurement. For raw model benchmarking, standard evals are more appropriate.
+3. **No cross-provider comparison** -- The showdown compares Grok reasoning vs non-reasoning, not Grok vs other providers. grok-eval is built specifically for xAI's API and Umbra integration. Cross-provider behavioral comparison would require a separate tool with normalized instrumentation.
+4. **Beta model slug** -- Results are specific to `grok-4.20-experimental-beta-0304`. Behavioral characteristics may change in GA releases.
 
 ## What It Measures
 
@@ -403,12 +434,25 @@ Identical decision distributions. Non-reasoning is 2-3x faster at the same behav
 6. **Behavioral drivers are monotonic** -- CI maps perfectly to Umbra action severity (allow=0.03, warn=0.18, gate=0.30, block=0.49). The gating system is calibrated correctly.
 7. **95.2% accuracy on adversarial prompts** -- Including formal Bayesian proofs, survivorship bias formalization, and probability axiom derivations.
 
-### Limitations and Methodology Notes
+### Conclusion
 
-1. **Sample size** -- Each run is 30 rounds (120 Umbra checks across 4 agents). Three independent runs give 360 total checks. This is enough to detect large effect sizes and establish behavioral patterns with statistical significance, but not enough to make fine-grained claims about rare failure modes. The CLI supports `--rounds` up to 100; higher round counts can be achieved by chaining runs.
-2. **Grok is measured through Umbra, not in isolation** -- CI and AL are computed by the CI-1T API based on behavioral signals Umbra observes. This means the results characterize *Grok's behavior under runtime gating*, not Grok in a vacuum. For production use cases where agents will run with guardrails, this is the relevant measurement. For raw model benchmarking, standard evals are more appropriate.
-3. **No cross-provider comparison** -- The showdown compares Grok reasoning vs non-reasoning, not Grok vs other providers. grok-eval is built specifically for xAI's API and Umbra integration. Cross-provider behavioral comparison would require a separate tool with normalized instrumentation.
-4. **Beta model slug** -- Results are specific to `grok-4.20-experimental-beta-0304`. Behavioral characteristics may change in GA releases.
+Grok 4.20 is behaviorally stable under extended agentic workloads. Across 360 Umbra-scored checks,
+3 independent runs, 10 adversarial scenarios, and both model variants, the results are consistent:
+no drift, no ghosts, 100% recovery, and a clean reproducible agent stability hierarchy.
+
+The most notable finding is what we did not find. Zero ghost errors means Grok 4.20 does not
+produce the failure mode that is hardest to catch -- stable, confident, wrong answers that
+evade detection. When the model is wrong, it is inconsistently wrong, which is exactly the
+kind of error that monitoring systems can flag.
+
+The reasoning and non-reasoning variants are behaviorally identical under gating. For
+latency-sensitive production deployments, the non-reasoning model delivers the same
+stability profile at 2-3x the speed.
+
+These results are specific to `grok-4.20-experimental-beta-0304` under Umbra runtime gating
+with 30 rounds per run. Higher round counts and isolation testing (without Umbra) are natural
+next steps. The tooling supports both -- `--rounds 100` and direct xAI API calls are already
+built in.
 
 ## Changelog
 
